@@ -36,6 +36,7 @@ def parse(expr):
 
 
 def shunt(tokens):
+    """Shunting Yard algo"""
 
     STACK, Q = [], []
 
@@ -69,6 +70,7 @@ def shunt(tokens):
 
 
 def eval_rpn(rpn):
+    """rpn is reverse polish notation"""
     stack = []
     for token in rpn:
         if token.typ == 'NUM':
