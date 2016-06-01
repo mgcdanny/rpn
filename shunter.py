@@ -3,11 +3,12 @@ import operator
 import collections
 import decimal
 
-Token = collections.namedtuple(
-    'Token', ['typ', 'val', 'prc', 'asc', 'func', 'is_oper'])
-
 
 def parse(expr):
+
+    Token = collections.namedtuple(
+        'Token', ['typ', 'val', 'prc', 'asc', 'func', 'is_oper'])
+
     grammer = {
         'NUM': {'asc': None, 'prc': None, 'func': decimal.Decimal, 'is_oper': False},
         'LPAREN': {'asc': 'L', 'prc': 0, 'func': None, 'is_oper': False},
@@ -19,7 +20,9 @@ def parse(expr):
         'EXP': {'asc': 'R', 'prc': 6, 'func': operator.pow, 'is_oper': True}
     }
 
-    token_spec = [('NUM', '\d+(\.\d*)?'), ('ADD', '\+|add'),
+    # order of the regexp matters (NUM  must run before SUB to capture
+    # negative numbers)
+    token_spec = [('NUM', '(^-)?\d+(\.\d*)?|(?<=\D)-?\d+(\.\d*)?'), ('ADD', '\+|add'),
                   ('SUB', '-'), ('MUL', '\*'), ('DIV', '/'),
                   ('EXP', '\^'), ('LPAREN', '\('), ('RPAREN', '\)')]
 
@@ -27,6 +30,7 @@ def parse(expr):
         pair[0], pair[1]) for pair in token_spec)
 
     tokens = []
+    expr = expr.replace(' ', '')
     for mo in re.finditer(tok_regex, expr):
         meta = grammer[mo.lastgroup]
         tokens.append(
@@ -96,6 +100,13 @@ def test_shunt():
 
     assert [t.val for t in shunt(parse('2-(2+3)*4/2'))] == ['2', '2',
                                                             '3', '+', '4', '*', '2', '/', '-']
+
+    assert [t.val for t in shunt(parse('-2--2'))] == ['-2', '-2', '-']
+
+    assert [t.val for t in shunt(parse('(-2--2)'))] == ['-2', '-2', '-']
+
+    assert [t.val for t in shunt(parse('2^3'))] == ['2', '3', '^']
+
     print('test_shunt Success !!!!!!!!!!!!!!!')
 
 
@@ -114,8 +125,16 @@ def test_rpn():
 
     assert eval_rpn(shunt(parse('(((2+10) - (1 add 1)) * 4 / 2)'))) == 20
 
+    assert eval_rpn(shunt(parse('-2--2'))) == 0
+
+    assert eval_rpn(shunt(parse('2.5-2.5'))) == 0
+
+    assert eval_rpn(shunt(parse('2^3'))) == 8
+
     print('test_rpn Success !!!!!!!!!!!!!!!')
 
 
-test_shunt()
-test_rpn()
+if __name__ == '__main__':
+
+    test_shunt()
+    test_rpn()
